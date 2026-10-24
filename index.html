@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>durev dump vpn</title>
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+      background: #0b0d10;
+      color: #e6e6e6;
+      margin: 0;
+      padding: 16px;
+    }
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 8px;
+      flex-wrap: wrap;
+    }
+    h1 { font-size: 16px; margin: 0; font-weight: 600; letter-spacing: .3px; }
+    button {
+      font: inherit;
+      background: #1c2330;
+      color: #e6e6e6;
+      border: 1px solid #2c3547;
+      border-radius: 8px;
+      padding: 6px 12px;
+      cursor: pointer;
+    }
+    button:hover { background: #232b3b; }
+    pre {
+      background: #05070a;
+      border: 1px solid #1a2230;
+      border-radius: 10px;
+      padding: 14px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      font-size: 12.5px;
+      line-height: 1.45;
+      margin: 0;
+      min-height: 60vh;
+    }
+    .hint { color: #6b7a90; font-size: 12px; margin: 8px 0 12px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>durev dump vpn</h1>
+    <button id="copy">copy base64</button>
+  </header>
+  <div class="hint">Happ VPN → подписка → вставь этот текст (или URL на sub.txt)</div>
+  <pre id="out">loading…</pre>
+
+  <script>
+    const out = document.getElementById('out');
+    const btn = document.getElementById('copy');
+
+    function b64encode(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = '';
+      const chunk = 0x8000;
+      for (let i = 0; i < bytes.length; i += chunk) {
+        bin += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+      }
+      return btoa(bin);
+    }
+
+    async function load() {
+      // 1) приоритет — готовый base64 (генерится GitHub Action)
+      try {
+        const r = await fetch('sub.txt', { cache: 'no-store' });
+        if (r.ok) {
+          const t = (await r.text()).trim();
+          if (t && !t.startsWith('<')) { out.textContent = t; return; }
+        }
+      } catch {}
+      // 2) fallback — кодируем subscription.txt прямо в браузере
+      try {
+        const r = await fetch('subscription.txt', { cache: 'no-store' });
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const t = await r.text();
+        out.textContent = b64encode(t);
+      } catch (e) {
+        out.textContent = 'error: ' + e.message;
+      }
+    }
+
+    load();
+
+    btn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText(out.textContent);
+        btn.textContent = 'copied ✓';
+        setTimeout(() => (btn.textContent = 'copy base64'), 1200);
+      } catch {}
+    });
+  </script>
+</body>
+</html>
